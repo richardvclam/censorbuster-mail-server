@@ -1,6 +1,6 @@
 const Imap = require('imap');
 const inspect = require('util').inspect;
-const sendMail = require('./sendMail.js');
+const server = require('./server-api.js');
 
 const fetchDelay = 5000;
 
@@ -35,6 +35,13 @@ imap.once('ready', () => {
                 const email = header.from[0].match(/<(.*?)>/)[1];
                 const subject = Imap.parseHeader(buffer).subject[0];
 
+                let toSubject;
+
+                if (subject === 'new' || subject === 'NEW') {
+                  toSubject = 'Welcome';
+                } else if (subject === 'list' || subject === 'LIST') {
+                  toSubject = 'New List';
+                }
                 sendMail(email, subject);
               });
             });
