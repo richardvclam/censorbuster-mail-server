@@ -1,8 +1,6 @@
 const Imap = require('imap');
 const api = require('./api.js');
 
-const fetchDelay = 5000;
-
 const imap = new Imap({
   host: 'imap.gmail.com',
   port: '993',
@@ -17,13 +15,16 @@ imap.once('ready', () => {
   // the seen flag.
   imap.openBox('INBOX', false, (err, box) => {
     console.log('Connected to inbox.');
-    if (err) throw err;
+    if (err) console.error(err);
 
-    // Set an interval for the server to fetch messages
-    setInterval(() => {
+    // When a new mail is received...
+    imap.on('mail', (num) => {
+      console.log('New mail received!');
       // Search for unopened emails
       imap.search(['UNSEEN'], (err, results) => {
-        try {
+        if (err) console.error(err);
+
+        if (results.length > 0) {
           // Fetch from and subjects fields from emails
           // and mark them as seen.
           const fetch = imap.fetch(results, {
@@ -66,11 +67,9 @@ imap.once('ready', () => {
           fetch.once('end', () => {
             console.log('Done fetching all messages.');
           });
-        } catch (err) {
-          console.log('Nothing to fetch.');
         }
       });
-    }, fetchDelay);
+    });
   });
 });
 
