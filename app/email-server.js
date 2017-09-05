@@ -1,12 +1,14 @@
+require('dotenv').config();
 const Imap = require('imap');
-const api = require('./api.js');
+const simpleParser = require('mailparser').simpleParser;
+const api = require('./api');
 
 const imap = new Imap({
   host: 'imap.gmail.com',
   port: '993',
   tls: true,
-  user: 'censorbustorstest1@gmail.com',
-  password: 'cens0r_csulb',
+  user: process.env.EMAIL_USERNAME,
+  password: process.env.EMAIL_PASSWORD,
 });
 
 // Connect to IMAP mail box
@@ -14,12 +16,13 @@ imap.once('ready', () => {
   // Open inbox with read-only set to false so we can modify
   // the seen flag.
   imap.openBox('INBOX', false, (err, box) => {
-    console.log('Connected to inbox.');
+    console.log('[Mail Server] Connected to inbox.');
+    console.log('[Mail Server] Listening for incoming emails...');
     if (err) console.error(err);
 
     // When a new mail is received...
     imap.on('mail', (num) => {
-      console.log('New mail received!');
+      console.log('[Mail Server] New mail received!');
       // Search for unopened emails
       imap.search(['UNSEEN'], (err, results) => {
         if (err) console.error(err);
@@ -28,7 +31,7 @@ imap.once('ready', () => {
           // Fetch from and subjects fields from emails
           // and mark them as seen.
           const fetch = imap.fetch(results, {
-            bodies: 'HEADER.FIELDS (FROM SUBJECT)',
+            bodies: '',
             markSeen: true,
           });
 
@@ -43,29 +46,27 @@ imap.once('ready', () => {
 
               // After finishing parsing, send an email
               stream.once('end', () => {
-                const header = Imap.parseHeader(buffer);
-                const email = header.from[0].match(/<(.*?)>/)[1];
-                const subject = Imap.parseHeader(buffer).subject[0];
+                // const header = Imap.parseHeader(buffer);
+                // const email = header.from[0];
+                // const subject = Imap.parseHeader(buffer).subject[0];
 
-                if (subject === 'new' || subject === 'NEW') {
-                  // If subject header contains new or NEW,
-                  // send them their user ID.
-                  api.sendUserID(email);
-                } else if (subject === 'list' || subject === 'LIST') {
-                  // If subject header contains list or LIST,
-                  // send them a list of DVP IP address and public keys.
-                  api.sendDVPList(email);
-                }
+                simpleParser(buffer, (error, mail) => {
+                  if (mail.subject === 'list' || mail.subject === 'LIST') {
+                    // If subject header contains list or LIST,
+                    // send them a list of DVP IP address and public keys.
+                    api.sendDVPList(mail.from.text, mail.text);
+                  }
+                });
               });
             });
           });
 
           fetch.once('error', (err) => {
-            console.log(`Fetch error: ${err}`);
+            console.log(`[Mail Server] Fetch error: ${err}`);
           });
 
           fetch.once('end', () => {
-            console.log('Done fetching all messages.');
+            console.log('[Mail Server] Done fetching all messages.');
           });
         }
       });
@@ -78,7 +79,12 @@ imap.once('error', (err) => {
 });
 
 imap.once('end', () => {
-  console.log('Connection ended');
+  console.log('[Mail Server] Connection ended.');
 });
 
-imap.connect();
+function start() {
+  imap.connect();
+  console.log('[Mail Server] Connecting to mail inbox...');
+}
+
+module.exports = { start };

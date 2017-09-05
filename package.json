@@ -2,14 +2,18 @@
   "name": "censorbuster-mail-server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./app/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.17.2",
+    "dotenv": "^4.0.0",
+    "express": "^4.15.4",
     "imap": "^0.8.19",
+    "mailparser": "^2.0.5",
     "nodemailer": "^4.0.1",
     "request": "^2.81.0"
   },
